@@ -1,5 +1,5 @@
-export test_file=scirex_dataset/release_data/test.jsonl
-export test_output_folder=test_outputs/
+export test_file=scirex_dataset/P05-1053_test_formate.json
+export test_output_folder=test_outputs_P0-1053/
 
 echo "Predicting NER"
 python scirex/predictors/predict_ner.py \

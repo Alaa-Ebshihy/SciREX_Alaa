@@ -78,6 +78,7 @@ def clean_json_dict(json_dict):
 
     json_dict["ner"]: Dict[Span, BaseEntityType] = entities
     json_dict["coref"]: Dict[ClusterName, List[Span]] = clusters_dict
+    json_dict["n_ary_relations"]: List[Dict[BaseEntityType, ClusterName]] = n_ary_relations
 
     for e in entities:
         in_sentences = [

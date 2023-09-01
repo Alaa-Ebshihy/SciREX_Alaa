@@ -78,6 +78,9 @@ def predict(archive_folder, span_file, cluster_file, output_file, cuda_device):
 
             n_ary_relations = output_res['n_ary_relation']
             predicted_relations, scores = n_ary_relations['candidates'], n_ary_relations['scores']
+            
+            if 'metadata' not in output_res['n_ary_relation']:
+                continue
 
             metadata = output_res['n_ary_relation']['metadata'][0]
             doc_id = metadata['doc_id']
