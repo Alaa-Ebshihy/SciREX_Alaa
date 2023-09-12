@@ -78,6 +78,14 @@ cuda_device=<cuda-device-num>  \
 bash scirex/commands/predict_external_pdf_paper.sh 
 ```
 
+#### To generate relations for a folder containing pdf papers:
+```bash
+python -m scirex_utilities.convert_pdfs_batch_to_relations \
+</path/to/pdfs/dir> \
+</path/to/output/working/dir> \
+<cuda-device-num>
+```
+
 Citation
 ========
 
