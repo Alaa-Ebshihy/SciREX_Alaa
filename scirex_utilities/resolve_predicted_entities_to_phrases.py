@@ -1,9 +1,13 @@
 from argparse import ArgumentParser
 
+import numpy as np
+
 from scirex_utilities.io_util import *
+from scirex_utilities.preprocess_util import *
 
 
 # TODO: introduce another method based on cluster center
+# TODO: in addition to the file for the names use the vectors (average of vector of words inside the cluster) and keep the cluster numbers
 def find_cluster_representative(cluster_key, clusters_predictions, ner_prediction, method='first'):
     if method == 'first':
         return find_cluster_rep_by_first_candidate(clusters_predictions['clusters'][cluster_key],
@@ -14,6 +18,25 @@ def find_cluster_representative(cluster_key, clusters_predictions, ner_predictio
 def find_cluster_rep_by_first_candidate(cluster_info, words):
     rep_span = cluster_info[0]
     return '_'.join(words[rep_span[0]:rep_span[1]])
+
+
+def generate_cluster_vectors_map(clusters, words):
+    clusters_vectors_map = {}
+    for cluster_key in clusters:
+        print('getting vectors for cluster', cluster_key)
+        clusters_vectors_map[cluster_key] = generate_cluster_vector_representation(clusters[cluster_key], words)
+    return clusters_vectors_map
+
+
+def generate_cluster_vector_representation(cluster_info, words):
+    vectors = []
+    for text_span in cluster_info:
+        text = ' '.join(words[text_span[0]:text_span[1]])
+        vectors.append(vectorize_text(text))
+    sum_vectors = vectors[0]
+    for i in range(1, len(vectors)):
+        sum_vectors = sum_vectors + vectors[i]
+    return sum_vectors / len(vectors)
 
 
 def main(args):
@@ -27,6 +50,7 @@ def main(args):
     ner_prediction = read_json(ner_predictions_path)
     clusters_predictions = read_json(clusters_predictions_path)
     relation_predictions = read_json(relation_predictions_path)
+    clusters_vectors_map = generate_cluster_vectors_map(clusters_predictions['clusters'], ner_prediction['words'])
 
     resolved_relations = []
 
@@ -34,12 +58,14 @@ def main(args):
         if relation_info[2] == 0:
             continue
         resolved_relation_entities = []
+        resolved_relation_vectors = []
         for cluster_key in relation_info[0]:
             entity_rep = find_cluster_representative(cluster_key, clusters_predictions, ner_prediction,
                                                      method=resolution_method)
             resolved_relation_entities.append(entity_rep)
-        resolved_relations.append([resolved_relation_entities, relation_info[1]])
-    resolved_relations.sort(key=lambda x: x[1], reverse=True)
+            resolved_relation_vectors.append(clusters_vectors_map[cluster_key])
+        resolved_relations.append([resolved_relation_entities, resolved_relation_vectors, relation_info[1]])
+    resolved_relations.sort(key=lambda x: x[2], reverse=True)
     write_json(output_path, {'doc_id': doc_id, 'sorted_predicted_relations': resolved_relations}, indent=0)
 
 
