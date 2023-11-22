@@ -1,23 +1,39 @@
+import math
 from argparse import ArgumentParser
-
-import numpy as np
 
 from scirex_utilities.io_util import *
 from scirex_utilities.preprocess_util import *
 
 
-# TODO: introduce another method based on cluster center
-# TODO: in addition to the file for the names use the vectors (average of vector of words inside the cluster) and keep the cluster numbers
-def find_cluster_representative(cluster_key, clusters_predictions, ner_prediction, method='first'):
+def find_cluster_representative(cluster_key, clusters_predictions, ner_prediction, cluster_vector_map, method='first'):
+    cluster_info = clusters_predictions['clusters'][cluster_key]
     if method == 'first':
-        return find_cluster_rep_by_first_candidate(clusters_predictions['clusters'][cluster_key],
-                                                   ner_prediction['words'])
+        return find_cluster_rep_by_first_candidate(cluster_info, ner_prediction['words'])
+    if method == 'center':  # cluster vector shouldn't be empty
+        return find_cluster_rep_by_center_candidate(cluster_info, ner_prediction['words'],
+                                                    cluster_vector_map[cluster_key])
     return ""
 
 
 def find_cluster_rep_by_first_candidate(cluster_info, words):
     rep_span = cluster_info[0]
     return '_'.join(words[rep_span[0]:rep_span[1]])
+
+
+def find_cluster_rep_by_center_candidate(cluster_info, words, cluster_vector):
+    rep_text = ""
+    similarity = 0
+    for rep_span in cluster_info:
+        text = ' '.join(words[rep_span[0]:rep_span[1]])
+        text_vector = vectorize_text(text)
+        cur_sim = cosine_similarity(text_vector, cluster_vector)
+        if math.isnan(cur_sim):
+            print('nan found')
+            cur_sim = 0
+        if similarity <= cur_sim:
+            rep_text = '_'.join(words[rep_span[0]:rep_span[1]])
+            similarity = cur_sim
+    return rep_text
 
 
 def generate_cluster_vectors_map(clusters, words):
@@ -32,7 +48,7 @@ def generate_cluster_vector_representation(cluster_info, words):
     vectors = []
     for text_span in cluster_info:
         text = ' '.join(words[text_span[0]:text_span[1]])
-        vectors.append(vectorize_text(text))
+        vectors.append(vectorize_text(text.lower()))
     sum_vectors = vectors[0]
     for i in range(1, len(vectors)):
         sum_vectors = sum_vectors + vectors[i]
@@ -61,12 +77,12 @@ def main(args):
         resolved_relation_vectors = []
         for cluster_key in relation_info[0]:
             entity_rep = find_cluster_representative(cluster_key, clusters_predictions, ner_prediction,
-                                                     method=resolution_method)
+                                                     clusters_vectors_map, method=resolution_method)
             resolved_relation_entities.append(entity_rep)
-            resolved_relation_vectors.append(clusters_vectors_map[cluster_key])
+            resolved_relation_vectors.append(clusters_vectors_map[cluster_key].tolist())
         resolved_relations.append([resolved_relation_entities, resolved_relation_vectors, relation_info[1]])
     resolved_relations.sort(key=lambda x: x[2], reverse=True)
-    write_json(output_path, {'doc_id': doc_id, 'sorted_predicted_relations': resolved_relations}, indent=0)
+    write_json(output_path, {'doc_id': doc_id, 'sorted_predicted_relations': resolved_relations})
 
 
 if __name__ == '__main__':

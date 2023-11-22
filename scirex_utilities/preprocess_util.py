@@ -1,8 +1,10 @@
 """
 contain functions for text preporcessing
 """
-from sklearn.feature_extraction.text import TfidfVectorizer
 import spacy
+from numpy import dot
+from numpy.linalg import norm
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 
 def spacy_tokenizer(sentence, parser, stopwords, punctuations):
@@ -21,3 +23,8 @@ def vectorize_text(text, model='en_core_sci_lg'):
     nlp = spacy.load(model)
     doc = nlp(text)
     return doc.vector
+
+
+def cosine_similarity(a, b):
+    cos_sim = dot(a, b) / (norm(a) * norm(b))
+    return cos_sim
